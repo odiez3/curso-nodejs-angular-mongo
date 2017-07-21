@@ -6,13 +6,16 @@ var bodyParser = require('body-parser');
 var app = express();
 
 //Cargar rutas
+var user_routes = require('./routes/user');
+
+
 app.use(bodyParser.urlencoded({extended:false}));
 app.use(bodyParser.json());
 
 // Configurar cabeceras http
 
 // rutas base
- app.get('/pruebas',function(req, res){
- 	res.status(200).send({message: 'Bienvenido al curso de victorrobles.web/es'});
- });
+app.use('/api',user_routes);
+
+
 module.exports = app;
