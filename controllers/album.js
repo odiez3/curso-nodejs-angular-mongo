@@ -10,124 +10,114 @@ var Artist = require('../models/artist');
 var Album = require('../models/album');
 var Song = require('../models/song');
 
-function getArtist(req,res) {
+function getAlbum(req,res) {
 	// body...
-	var artistId = req.params.id;
+	var albumId = req.params.id;
 
-	Artist.findById(artistId,(err,artist) => {
+	Album.findById(albumId).populate({path: 'artist'})
+	.exec((err,album)=>{
 		if(err){
 			res.status(500).send({
 				message: 'Error en la petición'
 			});
 		}else{
-			if(!artist){
+			if(!album){
 				res.status(404).send({
-				message: 'El artista no existe'
+					message: 'El album no existe'
 				});
 			}else{
-				res.status(200).send({artist});
+				res.status(200).
+				send({album});
 			}
 		}
-	});
+	})
 }
 
-function getArtists(req, res){
-	if(req.params.page){
-		var page = req.params.page;
+function getAlbums(req,res){
+	var artistId = req.params.artist;
+
+
+	if(!artistId){
+		// Sacar todos los albums de la BD
+		var find = Album.find({}).sort('title');
 	}else{
-		var page=1;
+		// sacar los albums de un artista concreto de la bdd
+		var find = Album.find({artist: artistId}).sort('year');
 	}
-	var itemsPerPage = 3;
 
-	Artist.find().sort('name')
-	.paginate(page,itemsPerPage,(err,artists,total)=>{
+	find.populate({path: 'artist'}).exec((err,albums)=>{
 		if(err){
 			res.status(500).send({
 				message: 'Error en la petición'
 			});
 		}else{
-			if(!artists){
+			if(!albums){
 				res.status(404).send({
-					message: 'No hay artistas'
-				});
-			}else{
-				return res.status(200).send({
-					tota_items: total,
-					artists: artists
-				});
-			}
-		}
-	});
-
-}
-
-function saveArtist(req, res){
-	var artist = new Artist();
-
-	var params = req.body;
-	artist.name= params.name;
-	artist.description = params.description;
-	artist.image = 'null';
-
-	artist.save((err,artistStored) =>{
-		if(err){
-			res.status(500).send({
-				message: 'Error al guardar el artista'
-			});
-		}else{
-			if(!artistStored){
-				res.status(404).send({
-					message : 'El artista no ha sido guardado'
+					message:'No hay albums'
 				});
 			}else{
 				res.status(200).send({
-					artist: artistStored
+					albums: albums
 				});
 			}
 		}
 	});
 }
 
+function saveAlbum(req, res){
+	var album = new Album();
+	var params = req.body;
 
-function updateArtist(req,res){
-	var artistId = req.params.id;
+	album.title = params.title;
+	album.description = params.description;
+	album.year = params.year;
+	album.image = 'null';
+	album.artist = params.artist;
+
+	album.save((err,albumStored)=>{
+		if(err){
+			res.status(500).send({
+				message: 'Error en la petición'
+			});
+		}else{
+			if(!albumStored){
+				res.status(404).send({
+					message: 'No se ha guardado el album'
+				});
+			}else{
+				res.status(200).send({album: albumStored});
+			}
+		}
+	});
+}
+
+function updateAlbum(req, res){
+	var albumId = req.params.id;
 	var update = req.body;
 
-	Artist.findByIdAndUpdate(artistId, update, (err,artistUpdated)=>{
+	Album.findByIdAndUpdate(albumId, update, (err,albumUpdated)=>{
 		if(err){
 			res.status(500).send({
-				message:'Error en la petición'
+				message: 'Error en la petición'
 			});
 		}else{
-			if(!artistUpdated){
+			if(!albumUpdated){
 				res.status(404).send({
-					message: 'El artista no existe'
+					message: 'No se ha actualizado el album'
 				});
 			}else{
-				res.status(200).send({artist: artistUpdated});
+				res.status(200).send({
+					album : albumUpdated
+				});
 			}
 		}
 	});
-
 }
 
+function deleteAlbum(req, res){
+	var albumId = req.params.id;
 
-function deleteArtist(req, res){
-	var artistId = req.params.id;
-	Artist.findByIdAndRemove(artistId,(err,artistRemoved)=>{
-		
-		if(err){
-			res.status(500).send({
-				message:'Error en la petición'
-			});
-		}else{
-			if(!artistRemoved){
-				res.status(404).send({
-					message: 'El artista no ha sido eliminado'
-				});
-			}else{
-				
-				Album.find({artist: artistRemoved._id}).remove((err,albumRemoved)=>{
+	Album.findByIdAndRemove(albumId, (err,albumRemoved)=>{
 					if(err){
 						res.status(500).send({
 							message:'Error eliminando el album'
@@ -151,7 +141,7 @@ function deleteArtist(req, res){
 										});
 									}else{
 										res.status(200).send({
-											artist: artistRemoved
+											album: albumRemoved
 										});
 
 									}
@@ -160,13 +150,10 @@ function deleteArtist(req, res){
 						}
 					}
 				});
-			}
-		}
-	});
 }
 
 function uploadImage(req, res){
-	var artistId = req.params.id;
+	var albumId = req.params.id;
 	var file_name = 'No subido...';
 
 	if(req.files){
@@ -179,15 +166,15 @@ function uploadImage(req, res){
 		if(file_ext == 'png' || file_ext == 'jpg' || 
 			file_ext == 'gif'){
 			
-			Artist.findByIdAndUpdate(artistId,{image: file_name},
-				(err,artistUpdated)=>{
-					if(!artistUpdated){
+			Album.findByIdAndUpdate(albumId,{image: file_name},
+				(err,albumUpdated)=>{
+					if(!albumUpdated){
 						res.status(404).send({
-							message: 'No se ha podido actualizar el artista'
+							message: 'No se ha podido actualizar el album'
 						});
 					}else{
 						res.status(200).send({
-							artist: artistUpdated
+							album: albumUpdated
 						});
 					}
 		
@@ -209,7 +196,7 @@ function uploadImage(req, res){
 
 function getImageFile(req, res){
 	var imageFile = req.params.imageFile;
-	var path_file='./uploads/artists/'+imageFile;
+	var path_file='./uploads/albums/'+imageFile;
 
 	fs.exists(path_file, function(exitsts){
 		if(exitsts){
@@ -223,12 +210,13 @@ function getImageFile(req, res){
 }
 
 
+
 module.exports = {
-	getArtist,
-	saveArtist,
-	getArtists,
-	updateArtist,
-	deleteArtist,
+	getAlbum,
+	saveAlbum,
+	getAlbums,
+	updateAlbum,
+	deleteAlbum,
 	uploadImage,
 	getImageFile
 };

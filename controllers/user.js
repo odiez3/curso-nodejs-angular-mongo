@@ -59,6 +59,7 @@ function loginUser(req,res){
 
 	var password = params.password;
 
+
 	User.findOne({email: email.toLowerCase()},(err,user)=>{
 		if(err){
 			res.status(500).send({message: 'Error en la petición.'})
@@ -134,6 +135,7 @@ function uploadImage(req,res){
 						});
 					}else{
 						res.status(200).send({
+							image: file_name,
 							user: userUpdated
 						});
 					}
